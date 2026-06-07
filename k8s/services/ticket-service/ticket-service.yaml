@@ -1,0 +1,190 @@
+# ─────────────────────────────────────────────
+#  ticket-service — PostgreSQL + App
+#  Puerto app: 8086
+# ─────────────────────────────────────────────
+
+# ── PostgreSQL ────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ticket-service-db-pvc
+  namespace: vivaeventos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-service-db
+  namespace: vivaeventos
+  labels:
+    app: ticket-service-db
+    tier: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-service-db
+  template:
+    metadata:
+      labels:
+        app: ticket-service-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-service-db-secret
+                  key: db-name
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-service-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-service-db-secret
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: ticket-service-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-service-db
+  namespace: vivaeventos
+spec:
+  selector:
+    app: ticket-service-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+# ── App ───────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-service
+  namespace: vivaeventos
+  labels:
+    app: ticket-service
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-service
+  template:
+    metadata:
+      labels:
+        app: ticket-service
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox
+          command: ['sh', '-c', 'until nc -z ticket-service-db 5432; do echo waiting for db; sleep 2; done']
+        - name: wait-for-rabbitmq
+          image: busybox
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: ticket-service
+          image: vane0205/vivaeventos-ticket-service:latest
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://ticket-service-db:5432/ticket-db"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-service-db-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-service-db-secret
+                  key: password
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
+            - name: SERVICES_ORDER_SERVICE_URL
+              value: "http://order-service:8083"
+            - name: SERVICES_EVENT_SERVICE_URL
+              value: "http://event-service:8082"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: secret
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8086
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8086
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-service
+  namespace: vivaeventos
+spec:
+  selector:
+    app: ticket-service
+  ports:
+    - port: 8086
+      targetPort: 8086
+  type: ClusterIP

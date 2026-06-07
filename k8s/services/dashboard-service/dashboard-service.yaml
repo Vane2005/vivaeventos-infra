@@ -1,0 +1,181 @@
+# ─────────────────────────────────────────────
+#  dashboard-service — PostgreSQL + App
+#  Puerto app: 8087 (interno: 8080)
+# ─────────────────────────────────────────────
+
+# ── PostgreSQL ────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dashboard-service-db-pvc
+  namespace: vivaeventos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-service-db
+  namespace: vivaeventos
+  labels:
+    app: dashboard-service-db
+    tier: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-service-db
+  template:
+    metadata:
+      labels:
+        app: dashboard-service-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-service-db-secret
+                  key: db-name
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-service-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-service-db-secret
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: dashboard-service-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service-db
+  namespace: vivaeventos
+spec:
+  selector:
+    app: dashboard-service-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+# ── App ───────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-service
+  namespace: vivaeventos
+  labels:
+    app: dashboard-service
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-service
+  template:
+    metadata:
+      labels:
+        app: dashboard-service
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox
+          command: ['sh', '-c', 'until nc -z dashboard-service-db 5432; do echo waiting for db; sleep 2; done']
+        - name: wait-for-rabbitmq
+          image: busybox
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: dashboard-service
+          image: vane0205/vivaeventos-dashboard-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://dashboard-service-db:5432/dashboarddb"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-service-db-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-service-db-secret
+                  key: password
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service
+  namespace: vivaeventos
+spec:
+  selector:
+    app: dashboard-service
+  ports:
+    - port: 8087
+      targetPort: 8080
+  type: ClusterIP
