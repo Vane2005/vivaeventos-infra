@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────
+#  Ingress — Rutas del API Gateway (Traefik)
+#
+#  Todas las rutas van bajo /api/<servicio>/
+#  Traefik hace strip del prefijo antes de enviar al servicio.
+#
+#  Ejemplo de URLs resultantes:
+#    GET /api/users/...       → user-service:8081
+#    GET /api/events/...      → event-service:8082
+#    GET /api/orders/...      → order-service:8083
+#    GET /api/payments/...    → payment-service:8084
+#    GET /api/notifications/. → notification-service:8085
+#    GET /api/tickets/...     → ticket-service:8086
+#    GET /api/dashboard/...   → dashboard-service:8087
+# ─────────────────────────────────────────────────────────────
+
+# ── Middleware: strip prefix ──────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vivaeventos-ingress
+  namespace: vivaeventos
+  annotations:
+    # Strip prefix para que cada servicio reciba rutas limpias
+    traefik.ingress.kubernetes.io/router.middlewares: vivaeventos-strip-prefix@kubernetescrd
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - http:
+        paths:
+          # ── user-service ──────────────────────────────────
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+
+          # ── event-service ─────────────────────────────────
+          - path: /api/events
+            pathType: Prefix
+            backend:
+              service:
+                name: event-service
+                port:
+                  number: 8082
+
+          # ── order-service ─────────────────────────────────
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+
+          # ── payment-service ───────────────────────────────
+          - path: /api/payments
+            pathType: Prefix
+            backend:
+              service:
+                name: payment-service
+                port:
+                  number: 8084
+
+          # ── notification-service ──────────────────────────
+          - path: /api/notifications
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 8085
+
+          # ── ticket-service ────────────────────────────────
+          - path: /api/tickets
+            pathType: Prefix
+            backend:
+              service:
+                name: ticket-service
+                port:
+                  number: 8086
+
+          # ── dashboard-service ─────────────────────────────
+          - path: /api/dashboard
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-service
+                port:
+                  number: 8087
