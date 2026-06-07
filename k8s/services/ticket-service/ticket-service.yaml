@@ -121,6 +121,8 @@ spec:
           ports:
             - containerPort: 8086
           env:
+            - name: SERVER_PORT
+              value: "8086"
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://ticket-service-db:5432/ticket-db"
             - name: SPRING_DATASOURCE_USERNAME

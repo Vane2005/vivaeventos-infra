@@ -150,11 +150,15 @@ spec:
             - name: SERVICES_ORDER_SERVICE_URL
               value: "http://order-service:8083"
             - name: STRIPE_SECRET_KEY
-              value: "sk_test_mock"
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: secret-key
             - name: STRIPE_PUBLISHABLE_KEY
-              value: "pk_test_mock"
-            - name: STRIPE_WEBHOOK_SECRET
-              value: "whsec_mock"
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: publishable-key
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: "update"
           resources:
