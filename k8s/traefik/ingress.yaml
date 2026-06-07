@@ -35,7 +35,7 @@ spec:
               service:
                 name: user-service
                 port:
-                  number: 8081
+                  number: 8080
 
           # ── event-service ─────────────────────────────────
           - path: /api/events
