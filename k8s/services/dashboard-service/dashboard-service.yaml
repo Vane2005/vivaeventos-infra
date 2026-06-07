@@ -119,7 +119,7 @@ spec:
         - name: dashboard-service
           image: vane0205/vivaeventos-dashboard-service:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8087
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://dashboard-service-db:5432/dashboarddb"
@@ -133,32 +133,22 @@ spec:
                 secretKeyRef:
                   name: dashboard-service-db-secret
                   key: password
-            - name: RABBITMQ_HOST
+            - name: SPRING_RABBITMQ_HOST
               value: "rabbitmq"
-            - name: RABBITMQ_PORT
+            - name: SPRING_RABBITMQ_PORT
               value: "5672"
-            - name: RABBITMQ_USERNAME
+            - name: SPRING_RABBITMQ_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: username
-            - name: RABBITMQ_PASSWORD
+            - name: SPRING_RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: password
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 60
-            periodSeconds: 15
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
           resources:
             requests:
               memory: "256Mi"
@@ -177,5 +167,5 @@ spec:
     app: dashboard-service
   ports:
     - port: 8087
-      targetPort: 8080
+      targetPort: 8087
   type: ClusterIP

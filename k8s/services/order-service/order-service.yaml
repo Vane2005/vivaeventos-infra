@@ -112,6 +112,9 @@ spec:
         - name: wait-for-db
           image: busybox
           command: ['sh', '-c', 'until nc -z order-service-db 5432; do echo waiting for db; sleep 2; done']
+        - name: wait-for-rabbitmq
+          image: busybox
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
       containers:
         - name: order-service
           image: vane0205/vivaeventos-order-service:latest
@@ -130,26 +133,32 @@ spec:
                 secretKeyRef:
                   name: order-service-db-secret
                   key: password
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "org.postgresql.Driver"
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: jwt-secret
                   key: secret
+            - name: SPRING_RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
             # En K8s los servicios se resuelven por nombre — no más IPs hardcodeadas
             - name: SERVICES_EVENT_SERVICE_URL
               value: "http://event-service:8082"
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8083
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8083
-            initialDelaySeconds: 60
-            periodSeconds: 15
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
           resources:
             requests:
               memory: "256Mi"

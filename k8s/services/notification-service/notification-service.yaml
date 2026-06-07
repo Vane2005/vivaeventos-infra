@@ -70,21 +70,25 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
             periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
           resources:
             requests:
-              memory: "192Mi"
-              cpu: "50m"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
-              memory: "384Mi"
-              cpu: "300m"
+              memory: "512Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
