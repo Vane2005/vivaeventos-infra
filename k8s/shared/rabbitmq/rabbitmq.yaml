@@ -49,15 +49,13 @@ spec:
           livenessProbe:
             exec:
               command: ["rabbitmq-diagnostics", "ping"]
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 15
+            timeoutSeconds: 10
           resources:
             requests:
               memory: "256Mi"
               cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "300m"
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq

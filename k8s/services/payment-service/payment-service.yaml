@@ -122,7 +122,7 @@ spec:
             - containerPort: 8084
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://payment-service-db:5432/payment-db"
+              value: "jdbc:postgresql://payment-service-db:5432/payment-service-db"
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -149,25 +149,18 @@ spec:
                   key: password
             - name: SERVICES_ORDER_SERVICE_URL
               value: "http://order-service:8083"
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8084
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8084
-            initialDelaySeconds: 60
-            periodSeconds: 15
+            - name: STRIPE_SECRET_KEY
+              value: "sk_test_mock"
+            - name: STRIPE_PUBLISHABLE_KEY
+              value: "pk_test_mock"
+            - name: STRIPE_WEBHOOK_SECRET
+              value: "whsec_mock"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
           resources:
             requests:
               memory: "256Mi"
               cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
