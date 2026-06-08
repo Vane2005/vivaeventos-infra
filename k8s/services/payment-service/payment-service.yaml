@@ -1,9 +1,9 @@
-# ─────────────────────────────────────────────
-#  payment-service — PostgreSQL + App
+# --------------------------------------
+#  payment-service - PostgreSQL + App
 #  Puerto app: 8084
-# ─────────────────────────────────────────────
+# --------------------------------------
 
-# ── PostgreSQL ────────────────────────────────
+# -- PostgreSQL --------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -89,7 +89,7 @@ spec:
   type: ClusterIP
 
 ---
-# ── App ───────────────────────────────────────
+# -- App --------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -159,8 +159,30 @@ spec:
                 secretKeyRef:
                   name: stripe-secret
                   key: publishable-key
+            - name: STRIPE_SUCCESS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: success-url
+            - name: STRIPE_CANCEL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: cancel-url
+            - name: STRIPE_RETURN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: return-url
+            - name: STRIPE_CANCEL_RETURN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: cancel-return-url
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: "update"
+            - name: PAYMENT_GATEWAY_PROVIDER
+              value: "stripe"
           resources:
             requests:
               memory: "256Mi"
