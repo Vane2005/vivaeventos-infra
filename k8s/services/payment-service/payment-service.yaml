@@ -1,9 +1,9 @@
-# ─────────────────────────────────────────────
-#  payment-service — PostgreSQL + App
+# --------------------------------------
+#  payment-service - PostgreSQL + App
 #  Puerto app: 8084
-# ─────────────────────────────────────────────
+# --------------------------------------
 
-# ── PostgreSQL ────────────────────────────────
+# -- PostgreSQL --------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -89,7 +89,7 @@ spec:
   type: ClusterIP
 
 ---
-# ── App ───────────────────────────────────────
+# -- App --------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
