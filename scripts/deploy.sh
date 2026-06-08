@@ -58,6 +58,7 @@ ALL_SERVICES=(
   notification-service
   ticket-service
   dashboard-service
+  frontend
 )
 
 # Si se pasó --only, usar solo esos servicios

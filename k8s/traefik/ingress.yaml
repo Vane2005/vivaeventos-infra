@@ -1,4 +1,4 @@
-# -- Ingress para el frontend (sin rewrite) --------------------------
+# ── Ingress para el frontend (sin rewrite) ────────────────────
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -19,7 +19,7 @@ spec:
                   number: 80
 
 ---
-# -- Ingress para los backends (con rewrite) --------------------------
+# ── Ingress para los backends (con rewrite) ───────────────────
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
