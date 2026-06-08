@@ -1,90 +1,87 @@
-# ─────────────────────────────────────────────────────────────
-#  Ingress — Rutas del API Gateway (Traefik)
-#
-#  Todas las rutas van bajo /api/<servicio>/
-#  Traefik hace strip del prefijo antes de enviar al servicio.
-#
-#  Ejemplo de URLs resultantes:
-#    GET /api/users/...       → user-service:8081
-#    GET /api/events/...      → event-service:8082
-#    GET /api/orders/...      → order-service:8083
-#    GET /api/payments/...    → payment-service:8084
-#    GET /api/notifications/. → notification-service:8085
-#    GET /api/tickets/...     → ticket-service:8086
-#    GET /api/dashboard/...   → dashboard-service:8087
-# ─────────────────────────────────────────────────────────────
-
-# ── Middleware: strip prefix ──────────────────────────────────
+# -- Ingress para el frontend (sin rewrite) --------------------------
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: vivaeventos-ingress
+  name: vivaeventos-frontend-ingress
   namespace: vivaeventos
   annotations:
-    # Strip prefix para que cada servicio reciba rutas limpias
-    traefik.ingress.kubernetes.io/router.middlewares: vivaeventos-strip-prefix@kubernetescrd
-    kubernetes.io/ingress.class: traefik
+    kubernetes.io/ingress.class: nginx
 spec:
   rules:
     - http:
         paths:
-          # ── user-service ──────────────────────────────────
-          - path: /api/users
+          - path: /
             pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+---
+# -- Ingress para los backends (con rewrite) --------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vivaeventos-api-ingress
+  namespace: vivaeventos
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/users(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: user-service
                 port:
                   number: 8080
 
-          # ── event-service ─────────────────────────────────
-          - path: /api/events
-            pathType: Prefix
+          - path: /api/events(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: event-service
                 port:
                   number: 8082
 
-          # ── order-service ─────────────────────────────────
-          - path: /api/orders
-            pathType: Prefix
+          - path: /api/orders(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: order-service
                 port:
                   number: 8083
 
-          # ── payment-service ───────────────────────────────
-          - path: /api/payments
-            pathType: Prefix
+          - path: /api/payments(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: payment-service
                 port:
                   number: 8084
 
-          # ── notification-service ──────────────────────────
-          - path: /api/notifications
-            pathType: Prefix
+          - path: /api/notifications(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: notification-service
                 port:
                   number: 8085
 
-          # ── ticket-service ────────────────────────────────
-          - path: /api/tickets
-            pathType: Prefix
+          - path: /api/tickets(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: ticket-service
                 port:
                   number: 8086
 
-          # ── dashboard-service ─────────────────────────────
-          - path: /api/dashboard
-            pathType: Prefix
+          - path: /api/dashboard(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: dashboard-service
